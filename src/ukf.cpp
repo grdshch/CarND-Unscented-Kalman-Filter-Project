@@ -1,6 +1,7 @@
 #include "ukf.h"
 #include "Eigen/Dense"
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -250,6 +251,10 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   //update state mean and covariance matrix
   x_ += K * (meas_package.raw_measurements_ - z_pred);
   P_ -= K * S * K.transpose();
+
+  std::ofstream out("laser_nis.txt", fstream::out | fstream::app);
+  VectorXd nis = (meas_package.raw_measurements_ - z_pred).transpose() * S.inverse() * (meas_package.raw_measurements_ - z_pred);
+  out << nis << std::endl;
 }
 
 /**
@@ -311,4 +316,8 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   //update state mean and covariance matrix
   x_ += K * (meas_package.raw_measurements_ - z_pred);
   P_ -= K * S * K.transpose();
+
+  std::ofstream out("radar_nis.txt", fstream::out | fstream::app);
+  VectorXd nis = (meas_package.raw_measurements_ - z_pred).transpose() * S.inverse() * (meas_package.raw_measurements_ - z_pred);
+  out << nis << std::endl;
 }
