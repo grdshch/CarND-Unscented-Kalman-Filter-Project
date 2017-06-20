@@ -86,8 +86,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package)
       // convert measurement from polar to cartesian coordinates
       double rho = meas_package.raw_measurements_[0];
       double phi = meas_package.raw_measurements_[1];
-      double phid = meas_package.raw_measurements_[2];
-      x_ << rho * cos(phi), rho * sin(phi), 0, phi, phid;
+      x_ << rho * cos(phi), rho * sin(phi), 0, phi, 0;
     }
     else if (meas_package.sensor_type_ == MeasurementPackage::LASER)
     {
@@ -188,11 +187,16 @@ void UKF::Prediction(double delta_t)
   x_ = Sigma_pred_ * weights_;
 
   //predict state covariance matrix
+  P_.fill(0);
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
     VectorXd diff = Sigma_pred_.col(i) - x_;
     //angle normalization
-    while (diff(1) > M_PI) diff(1) -= 2. * M_PI;
-    while (diff(1) < -M_PI) diff(1) += 2. * M_PI;
+    while (diff(3) > M_PI) {
+      diff(3) -= 2. * M_PI;
+    }
+    while (diff(3) < -M_PI) {
+      diff(3) += 2. * M_PI;
+    }
     P_ += weights_(i) * diff * diff.transpose();
   }
 }
