@@ -12,7 +12,7 @@ using std::vector;
  */
 UKF::UKF() {
   // if this is false, laser measurements will be ignored (except during init)
-  use_laser_ = false;
+  use_laser_ = true;
 
   // if this is false, radar measurements will be ignored (except during init)
   use_radar_ = true;
@@ -214,6 +214,42 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+  int n_z = 2;
+
+  //create matrix for sigma points in measurement space
+  MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug_ + 1);
+  //mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z);
+  //measurement covariance matrix S
+  MatrixXd S = MatrixXd::Zero(n_z, n_z);
+
+  //transform sigma points into measurement space
+  Zsig = Sigma_pred_.block(0, 0, 2, 2 * n_aug_ + 1);
+
+  //calculate mean predicted measurement
+  z_pred = Zsig * weights_;
+  //calculate measurement covariance matrix S
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
+    VectorXd diff = Zsig.col(i) - z_pred;
+    S += weights_(i) * diff * diff.transpose();
+  }
+  S(0, 0) += std_laspx_ * std_laspx_;
+  S(1, 1) += std_laspy_ * std_laspy_;
+
+  //create matrix for cross correlation Tc
+  MatrixXd Tc = MatrixXd::Zero(n_x_, n_z);
+
+  //calculate cross correlation matrix
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
+    Tc += weights_(i) * (Sigma_pred_.col(i) - x_) * (Zsig.col(i) - z_pred).transpose();
+  }
+
+  //calculate Kalman gain K;
+  MatrixXd K = Tc * S.inverse();
+
+  //update state mean and covariance matrix
+  x_ += K * (meas_package.raw_measurements_ - z_pred);
+  P_ -= K * S * K.transpose();
 }
 
 /**
@@ -248,6 +284,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   }
   //calculate mean predicted measurement
   z_pred = Zsig * weights_;
+
   //calculate measurement covariance matrix S
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
     VectorXd diff = Zsig.col(i) - z_pred;
