@@ -67,6 +67,9 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  // to save NIS results
+  std::ofstream radar_out;
+  std::ofstream laser_out;
 
   /**
    * Constructor
