@@ -12,7 +12,7 @@ using std::vector;
  */
 UKF::UKF() {
   // if this is false, laser measurements will be ignored (except during init)
-  use_laser_ = false;
+  use_laser_ = true;
 
   // if this is false, radar measurements will be ignored (except during init)
   use_radar_ = true;
@@ -60,8 +60,7 @@ UKF::UKF() {
   is_initialized_ = false;
 }
 
-UKF::~UKF() {
-}
+UKF::~UKF() {}
 
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
@@ -76,7 +75,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package)
       // convert measurement from polar to cartesian coordinates
       double rho = meas_package.raw_measurements_[0];
       double phi = meas_package.raw_measurements_[1];
-      x_ << rho * cos(phi), rho * sin(phi), 0, 0, 0;
+      double rhod = meas_package.raw_measurements_[2];
+      x_ << rho * cos(phi), rho * sin(phi), rhod, phi, 0;
     }
     else if (meas_package.sensor_type_ == MeasurementPackage::LASER)
     {
@@ -276,9 +276,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   MatrixXd K = Tc * S.inverse();
 
   //update state mean and covariance matrix
-  x_ += K * (meas_package.raw_measurements_ - z_pred);
+  VectorXd z_diff = (meas_package.raw_measurements_ - z_pred);
+  x_ += K * z_diff;
   P_ -= K * S * K.transpose();
 
-  double nis = (meas_package.raw_measurements_ - z_pred).transpose() * S.inverse() * (meas_package.raw_measurements_ - z_pred);
+  double nis = z_diff.transpose() * S.inverse() * z_diff;
   radar_out << nis << std::endl;
 }
